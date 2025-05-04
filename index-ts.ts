@@ -21,6 +21,7 @@ const fundButton = document.getElementById("BuyCoffeeButton") as HTMLButtonEleme
 const ethAmountInput = document.getElementById("ethAmount") as HTMLInputElement;
 const balanceButton = document.getElementById("BalanceButton") as HTMLButtonElement;
 const withdrawButton = document.getElementById("WithdrawButton") as HTMLButtonElement;
+const amountFundedButton = document.getElementById("AmountFundedButton") as HTMLButtonElement;
 
 // Initialize clients with types
 let walletClient: WalletClient;
@@ -145,8 +146,40 @@ async function getBalance(): Promise<void> {
     }
 }
 
+async function amountFunded(): Promise<void> {
+    console.log("Getting amount funded...");
+
+    if (typeof window.ethereum !== "undefined") {
+        try {
+            walletClient = createWalletClient({
+                transport: custom(window.ethereum),
+            });
+            const [connectedAccount] = await walletClient.requestAddresses();
+            
+            publicClient = createPublicClient({
+                transport: custom(window.ethereum),
+            });
+            
+            const amountFundedWei = await publicClient.readContract({
+                address: contractAddress,
+                abi: abi,
+                functionName: "getAddressToAmountFunded",
+                args: [connectedAccount]
+            });
+            
+            const amountFundedEth = formatEther(amountFundedWei as bigint);
+            console.log(`Amount funded by ${connectedAccount}: ${amountFundedEth} ETH`);
+        } catch (error) {
+            console.error("Error getting amount funded:", error);
+        }
+    } else {
+        connectButton.innerHTML = "Please install MetaMask";
+    }
+}
+
 // Add event listeners with proper typing
 connectButton.onclick = connect;
 fundButton.onclick = fund;
 balanceButton.onclick = getBalance;
 withdrawButton.onclick = withdraw;
+amountFundedButton.onclick = amountFunded;
